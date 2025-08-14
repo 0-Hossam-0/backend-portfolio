@@ -1,0 +1,82 @@
+import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import dotenv from 'dotenv';
+import { connectDB } from './database/connect';
+import { StatusCodes } from 'http-status-codes';
+import { ZodError } from 'zod';
+import projectRoutes from './routes/project.route';
+import experienceRoutes from './routes/experience.route';
+import session from 'express-session';
+import contactInfoRoutes from './routes/contact.route';
+import userRoutes from './routes/user.route';
+import updateRoutes from './routes/update.route';
+import personalRoutes from './routes/personal.route';
+import cors from 'cors';
+import { limiter } from './middlewares/rateLimiter.middleware';
+import path from 'path';
+import { downloadCV } from './middlewares/cv.middleware';
+
+const app = express();
+
+// app.use(limiter);
+
+const port = process.env.PORT || 4000;
+
+dotenv.config();
+
+app.use(express.urlencoded({ extended: true }));
+
+app.use(express.json());
+
+app.use(cors({
+  origin: ['http://localhost:4200','http://localhost:51886'],
+  credentials: true,
+  
+}));
+
+connectDB();
+
+app.listen(port, () => console.log('Server Is Running on Port', port));
+
+app.use(
+  session({
+    secret: process.env.SECRET_KEY || 'MyKey',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+    },
+  })
+);
+
+app.use('/images', express.static('./images'));
+
+app.use('/api/project', projectRoutes);
+
+app.use('/api/experience', experienceRoutes);
+
+app.use('/api/contact', contactInfoRoutes);
+
+app.use('/api/update', updateRoutes);
+
+app.use('/api/user', userRoutes);
+
+app.use('/api/personal', personalRoutes);
+
+app.use('/api/download', downloadCV);
+
+app.use((err: ErrorRequestHandler | any, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof ZodError) {
+    const flattened = err.flatten();
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      message: 'Validation failed',
+      errors: flattened.fieldErrors,
+    });
+  }
+  return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    message: err.message || 'Something went wrong.',
+  });
+});
+
+export default app;
