@@ -12,12 +12,14 @@ import updateRoutes from './routes/update.route';
 import personalRoutes from './routes/personal.route';
 import cors from 'cors';
 import { limiter } from './middlewares/rateLimiter.middleware';
-import path from 'path';
 import { downloadCV } from './middlewares/cv.middleware';
+import { corsMiddleware } from './middlewares/cors.middleware';
 
 const app = express();
 
-// app.use(limiter);
+app.use(corsMiddleware);
+
+app.use(limiter);
 
 const port = process.env.PORT || 4000;
 
@@ -26,12 +28,6 @@ dotenv.config();
 app.use(express.urlencoded({ extended: true }));
 
 app.use(express.json());
-
-app.use(cors({
-  origin: ['http://localhost:4200','http://localhost:51886'],
-  credentials: true,
-  
-}));
 
 connectDB();
 

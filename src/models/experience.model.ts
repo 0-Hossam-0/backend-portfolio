@@ -39,7 +39,12 @@ const experienceSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-  },
+    route:{
+      type: Date,
+      required: true,
+
+    },
+    },
   {
     collection: 'experience',
   }

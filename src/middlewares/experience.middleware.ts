@@ -37,8 +37,10 @@ export const deleteExperience = async (req: Request, res: Response, next: NextFu
 };
 
 export const updateExperience = async (req: Request, res: Response, next: NextFunction) => {
+  console.log('update');
+  console.log(req.params.title.replace(/\s+/g, '-').toLowerCase());
   const result = await ExperienceCollection.updateOne(
-    { title: req.params.title },
+    { route: req.params.title.replace(/\s+/g, '-').toLowerCase() },
     {
       title: req.body.title,
       description: req.body.description,
@@ -98,6 +100,8 @@ export const getExperience = async (req: Request, res: Response, next: NextFunct
 };
 
 export const checkIfExperienceExist = async (req: Request, res: Response, next: NextFunction) => {
+  console.log('update');
+
   const title = req.params?.title || req.body?.title;
   const exists = await ExperienceCollection.findOne({ route: title.replace(/\s+/g, '-').toLowerCase() });
   if (req.method === 'POST' && exists)
