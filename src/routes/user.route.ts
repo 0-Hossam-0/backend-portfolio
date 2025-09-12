@@ -11,7 +11,7 @@ import { createUser } from '../middlewares/user.middleware';
 
 const router = Router();
 
-router.post('/', requireAuth, validateRequest, checkIfUserExist, createUser);
+router.post('/', validateRequest, createUser);
 
 router.post('/login', userLogin);
 
