@@ -10,28 +10,21 @@ import contactInfoRoutes from './routes/contact.route';
 import userRoutes from './routes/user.route';
 import updateRoutes from './routes/update.route';
 import personalRoutes from './routes/personal.route';
-import cors from 'cors';
 import { limiter } from './middlewares/rateLimiter.middleware';
 import { downloadCV } from './middlewares/cv.middleware';
 import { corsMiddleware } from './middlewares/cors.middleware';
 
 const app = express();
 
+dotenv.config();
+
 app.set('trust proxy', 1);
 
-app.use(
-  cors({
-    origin: 'https://hossam-ahmed.vercel.app',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true,
-  })
-);
+app.use(corsMiddleware);
 
-app.use(limiter);
+// app.use(limiter);
 
 const port = process.env.PORT || 4000;
-
-dotenv.config();
 
 app.use(express.urlencoded({ extended: true }));
 
@@ -54,7 +47,7 @@ app.use(
   })
 );
 
-app.use('/images', express.static('./images'));
+app.use('/images', express.static('../images'));
 
 app.use('/api/project', projectRoutes);
 
