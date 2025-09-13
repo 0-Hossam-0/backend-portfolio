@@ -8,6 +8,7 @@ import {
   validateRequest,
 } from '../middlewares/contact.middleware';
 import { requireAuth } from '../middlewares/auth.middleware';
+import { emailLimiter } from '../middlewares/rateLimiter.middleware';
 
 const router = Router();
 
@@ -17,6 +18,6 @@ router.put('/', requireAuth, validateRequest, updateContactInfo);
 
 router.get('/', getContactInfo);
 
-router.post('/send-email', validateContactMe, sendEmail);
+router.post('/send-email', emailLimiter, validateContactMe, sendEmail);
 
 export default router;

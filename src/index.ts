@@ -13,6 +13,7 @@ import personalRoutes from './routes/personal.route';
 import { limiter } from './middlewares/rateLimiter.middleware';
 import { downloadCV } from './middlewares/cv.middleware';
 import { corsMiddleware } from './middlewares/cors.middleware';
+import { getAllData } from './middlewares/user.middleware';
 
 const app = express();
 
@@ -41,13 +42,13 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: false,
+      sameSite: 'lax',
     },
   })
 );
 
-app.use('/images', express.static('../images'));
+app.use('/images', express.static('./images'));
 
 app.use('/api/project', projectRoutes);
 
@@ -62,6 +63,8 @@ app.use('/api/user', userRoutes);
 app.use('/api/personal', personalRoutes);
 
 app.use('/api/download', downloadCV);
+
+app.get('/api/home', getAllData)
 
 app.use((err: ErrorRequestHandler | any, req: Request, res: Response, next: NextFunction) => {
   if (err instanceof ZodError) {
