@@ -17,9 +17,15 @@ import { corsMiddleware } from './middlewares/cors.middleware';
 
 const app = express();
 
-app.set("trust proxy", 1);
+app.set('trust proxy', 1);
 
-app.use(corsMiddleware);
+app.use(
+  cors({
+    origin: 'https://hossam-ahmed.vercel.app',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+  })
+);
 
 app.use(limiter);
 
