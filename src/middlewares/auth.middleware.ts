@@ -18,7 +18,7 @@ export const userLogin = async (req: Request, res: Response) => {
 
   try {
     const user = await UserCollection.findOne({ username });
-    if (!user) return res.status(400).json({ message: 'User not found' });
+    if (!user) return res.status(StatusCodes.BAD_REQUEST).json({ message: 'User not found' });
 
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect) return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Invalid credentials' });
@@ -27,7 +27,7 @@ export const userLogin = async (req: Request, res: Response) => {
       username: user.username,
     };
 
-    res.json({ message: 'Logged in successfully' });
+    return res.json({ message: 'Logged in successfully' });
   } catch (error) {
     console.log(error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Something went wrong' });

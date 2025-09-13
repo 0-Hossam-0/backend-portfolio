@@ -11,10 +11,10 @@ export const getPersonalInfo = async (req: Request, res: Response, next: NextFun
     const personalData = await PersonalCollection.findOne();
 
     if (!personalData) {
-      return res.status(404).json({ message: 'Personal info not found' });
+      return res.status(StatusCodes.NOT_FOUND).json({ message: 'Personal info not found' });
     }
     console.log(personalData);
-    res.status(200).json({
+    res.status(StatusCodes.OK).json({
       name:personalData.name,
       title:personalData.title,
       location:personalData.location,
@@ -24,7 +24,7 @@ export const getPersonalInfo = async (req: Request, res: Response, next: NextFun
     });
   } catch (error) {
     if (error instanceof Error) {
-      res.status(400).json({ message: error.message });
+      res.status(StatusCodes.BAD_REQUEST).json({ message: error.message });
     } else {
       next(error);
     }
