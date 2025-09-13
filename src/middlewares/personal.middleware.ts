@@ -49,7 +49,7 @@ export const createOrUpdatePersonalInfo = async (req: Request, res: Response, ne
 
     if (req.file) {
       const filename = `${Date.now()}-${req.file.originalname}`;
-      const filepath = path.join('images', filename);
+      const filepath = path.join('../../images', filename);
       await fs.promises.writeFile(filepath, req.file.buffer);
       savedFilename = filename;
     }
