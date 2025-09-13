@@ -17,6 +17,8 @@ import { corsMiddleware } from './middlewares/cors.middleware';
 
 const app = express();
 
+app.set("trust proxy", 1);
+
 app.use(corsMiddleware);
 
 app.use(limiter);
