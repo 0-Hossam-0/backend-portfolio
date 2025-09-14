@@ -10,11 +10,11 @@ import contactInfoRoutes from './routes/contact.route';
 import userRoutes from './routes/user.route';
 import updateRoutes from './routes/update.route';
 import personalRoutes from './routes/personal.route';
-import { limiter } from './middlewares/rateLimiter.middleware';
 import { downloadCV } from './middlewares/cv.middleware';
 import { corsMiddleware } from './middlewares/cors.middleware';
 import { getAllData } from './middlewares/user.middleware';
 import mongoose from 'mongoose';
+import MongoStore  from 'connect-mongo';
 
 const app = express();
 
@@ -35,16 +35,20 @@ app.use(express.json());
 connectDB();
 
 app.listen(port, () => console.log('Server Is Running on Port', port));
-
 app.use(
   session({
-    secret: process.env.SECRET_KEY || 'MyKey',
+    secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: process.env.DB_CONNECTION,
+      dbName: 'sessions',
+    }),
     cookie: {
-      httpOnly: true,
       secure: true,
       sameSite: 'none',
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60,
     },
   })
 );
@@ -77,7 +81,7 @@ app.use('/api/personal', personalRoutes);
 
 app.use('/api/download', downloadCV);
 
-app.get('/api/home', getAllData)
+app.get('/api/home', getAllData);
 
 app.use((err: ErrorRequestHandler | any, req: Request, res: Response, next: NextFunction) => {
   if (err instanceof ZodError) {
