@@ -4,55 +4,79 @@ import { Update, UpdateSchema } from './validations/update.validator';
 import UpdatesCollection from '../models/updates.model';
 import path from 'path';
 import fs from 'fs';
+import { getGridFSBucket } from '../database/connect';
+import mongoose from 'mongoose';
 
 export const createUpdate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { title, description, postDate }: Update = req.body;
-    const savedFilenames: string[] = [];
+    const savedFileIds: mongoose.Types.ObjectId[] = [];
 
     if (Array.isArray(req.files)) {
+      const bucket = getGridFSBucket();
       for (const file of req.files as Express.Multer.File[]) {
-        const filename = `${Date.now()}-${file.originalname}`;
-        const filepath = path.join('images', filename);
-        await fs.promises.writeFile(filepath, file.buffer);
-        savedFilenames.push(filename);
+        const uploadStream = bucket.openUploadStream(`${Date.now()}-${file.originalname}`);
+        uploadStream.end(file.buffer);
+
+        // wait until finish before pushing id
+        await new Promise<void>((resolve, reject) => {
+          uploadStream.on('finish', () => {
+            savedFileIds.push(uploadStream.id as mongoose.Types.ObjectId);
+            resolve();
+          });
+          uploadStream.on('error', reject);
+        });
       }
     }
+
     const route = title.replace(/\s+/g, '-').toLowerCase();
-    
-    await UpdatesCollection.create({ title, description, postDate, images: savedFilenames, route: route });
+
+    await UpdatesCollection.create({
+      title,
+      description,
+      postDate,
+      images: savedFileIds,
+      route,
+    });
+
     return res.status(StatusCodes.CREATED).json({
-      message: `Update created successfully`,
+      message: 'Update created successfully',
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     next(new Error('Something went wrong.'));
   }
 };
-
 export const modifyUpdate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const files = (req.files as Express.Multer.File[]) || [];
-    const savedFilePaths: string[] = [];
+    const savedFileIds: mongoose.Types.ObjectId[] = [];
 
     for (const file of files) {
-      const filename = `${Date.now()}-${file.originalname}`;
-      const filepath = path.join(filename);
-      await fs.promises.writeFile(path.join('images', filename), file.buffer);
-      savedFilePaths.push(filepath);
+      const bucket = getGridFSBucket();
+      const uploadStream = bucket.openUploadStream(`${Date.now()}-${file.originalname}`);
+      uploadStream.end(file.buffer);
+
+      await new Promise<void>((resolve, reject) => {
+        uploadStream.on('finish', () => {
+          savedFileIds.push(uploadStream.id as mongoose.Types.ObjectId);
+          resolve();
+        });
+        uploadStream.on('error', reject);
+      });
     }
 
     const updatedFields: any = {
-      title: req.body.title,
-      description: req.body.description,
-      postDate: req.body.postDate,
+      ...(req.body.title && { title: req.body.title }),
+      ...(req.body.description && { description: req.body.description }),
+      ...(req.body.postDate && { postDate: req.body.postDate }),
     };
 
-    if (savedFilePaths.length > 0) {
-      updatedFields.images = savedFilePaths;
+    if (savedFileIds.length > 0) {
+      updatedFields.images = savedFileIds;
     }
 
-    const result = await UpdatesCollection.updateOne({ title: req.params.title }, updatedFields);
+    const result = await UpdatesCollection.updateOne({ title: req.params.title }, { $set: updatedFields });
 
     if (result.modifiedCount > 0) {
       return res.status(StatusCodes.ACCEPTED).json({ message: 'Update updated successfully.' });

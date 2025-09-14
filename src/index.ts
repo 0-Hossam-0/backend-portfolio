@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import dotenv from 'dotenv';
-import { connectDB } from './database/connect';
+import { connectDB, getGridFSBucket } from './database/connect';
 import { StatusCodes } from 'http-status-codes';
 import { ZodError } from 'zod';
 import projectRoutes from './routes/project.route';
@@ -14,6 +14,7 @@ import { limiter } from './middlewares/rateLimiter.middleware';
 import { downloadCV } from './middlewares/cv.middleware';
 import { corsMiddleware } from './middlewares/cors.middleware';
 import { getAllData } from './middlewares/user.middleware';
+import mongoose from 'mongoose';
 
 const app = express();
 
@@ -48,7 +49,19 @@ app.use(
   })
 );
 
-app.use('/images', express.static('./images'));
+app.get('/images/:id', async (req, res) => {
+  try {
+    const fileId = new mongoose.Types.ObjectId(req.params.id);
+    const bucket = getGridFSBucket();
+    const downloadStream = bucket.openDownloadStream(fileId);
+
+    res.setHeader('Content-Type', 'image/jpeg');
+
+    downloadStream.pipe(res);
+  } catch (err) {
+    res.status(StatusCodes.NOT_FOUND).json({ message: 'Image not found' });
+  }
+});
 
 app.use('/api/project', projectRoutes);
 

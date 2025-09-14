@@ -4,14 +4,28 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const DB_CONNECTION = process.env.DB_CONNECTION;
-export function connectDB() {
+
+let gfsBucket: mongoose.mongo.GridFSBucket;
+
+export async function connectDB() {
   console.log('Connecting To Database...');
-  mongoose
-    .connect(DB_CONNECTION!)
-    .then(() => {
-      console.log('Database is connected successfully.');
-    })
-    .catch((error) => {
-      console.log(error);
+  try {
+    const conn = await mongoose.connect(DB_CONNECTION!);
+    console.log('Database is connected successfully.');
+
+
+    gfsBucket = new mongoose.mongo.GridFSBucket(conn.connection.db!, {
+      bucketName: 'uploads',
     });
+    console.log('GridFS initialized with bucket name "uploads"');
+  } catch (error) {
+    console.error('Error connecting to DB:', error);
+  }
+}
+
+export function getGridFSBucket(): mongoose.mongo.GridFSBucket {
+  if (!gfsBucket) {
+    throw new Error('GridFSBucket is not initialized. Call connectDB() first.');
+  }
+  return gfsBucket;
 }

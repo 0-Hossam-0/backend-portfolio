@@ -1,9 +1,8 @@
 import PersonalCollection from '../models/personal.model';
 import { Request, Response, NextFunction } from 'express';
 import { personalSchema } from './validations/personal.validator';
-import path from 'path';
-import fs from 'fs';
 import { StatusCodes } from 'http-status-codes';
+import { getGridFSBucket } from '../database/connect';
 
 export const getPersonalInfo = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -31,7 +30,6 @@ export const getPersonalInfo = async (req: Request, res: Response, next: NextFun
   }
 };
 
-
 export const checkPersonalExists = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const personal = await PersonalCollection.findOne();
@@ -45,20 +43,33 @@ export const checkPersonalExists = async (req: Request, res: Response, next: Nex
 export const createOrUpdatePersonalInfo = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const parsedData = personalSchema.parse(req.body);
-    let savedFilename: string | undefined;
+    let fileId: string | undefined;
 
     if (req.file) {
+      const bucket = getGridFSBucket();
+
       const filename = `${Date.now()}-${req.file.originalname}`;
-      const filepath = path.join('/images', filename);
-      await fs.promises.writeFile(filepath, req.file.buffer);
-      savedFilename = filename;
+
+      const uploadStream = bucket.openUploadStream(filename, {
+        contentType: req.file.mimetype,
+      });
+
+      uploadStream.end(req.file.buffer);
+
+      await new Promise<void>((resolve, reject) => {
+        uploadStream.on('finish', () => {
+          fileId = uploadStream.id.toString();
+          resolve();
+        });
+        uploadStream.on('error', reject);
+      });
     }
 
     const updatedDoc = await PersonalCollection.findOneAndUpdate(
       {},
       {
         ...parsedData,
-        ...(savedFilename && { image: savedFilename }),
+        ...(fileId && { image: fileId }),
       },
       { upsert: true, new: true }
     );

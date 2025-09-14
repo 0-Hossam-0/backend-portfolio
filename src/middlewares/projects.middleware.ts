@@ -2,36 +2,50 @@ import { StatusCodes } from 'http-status-codes';
 import { NextFunction, Request, Response } from 'express';
 import { Project, ProjectSchema } from './validations/project.validator';
 import ProjectCollection from '../models/project.model';
-import path from 'path';
-import fs from 'fs';
+import { getGridFSBucket } from '../database/connect';
+
 
 export const createProject = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { title, description, technologies, githubLink }: Project = req.body;
-    const savedFilenames: string[] = [];
+    const savedFileIds: string[] = [];
 
     if (Array.isArray(req.files)) {
+      const bucket = getGridFSBucket();
       for (const file of req.files as Express.Multer.File[]) {
-        const filename = `${Date.now()}-${file.originalname}`;
-        const filepath = path.join('images', filename);
-        await fs.promises.writeFile(filepath, file.buffer);
-        savedFilenames.push(filename);
+        const uploadStream = bucket.openUploadStream(file.originalname, {
+          contentType: file.mimetype,
+        });
+
+        // Write file buffer into GridFS
+        uploadStream.end(file.buffer);
+
+        await new Promise<void>((resolve, reject) => {
+          uploadStream.on('finish', () => {
+            savedFileIds.push(uploadStream.id.toString()); // save fileId as string
+            resolve();
+          });
+          uploadStream.on('error', reject);
+        });
       }
     }
+
     const route = title.replace(/\s+/g, '-').toLowerCase();
+
     await ProjectCollection.create({
       title,
       description,
-      images: savedFilenames,
-      technologies: technologies,
-      githubLink: githubLink,
-      route: route,
+      images: savedFileIds, // store GridFS file IDs instead of filenames
+      technologies,
+      githubLink,
+      route,
     });
+
     return res.status(StatusCodes.CREATED).json({
-      message: `Project created successfully`,
+      message: 'Project created successfully',
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     next(new Error('Something went wrong.'));
   }
 };
@@ -51,36 +65,54 @@ export const deleteProject = async (req: Request, res: Response, next: NextFunct
 
 export const updateProject = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const savedFilePaths: string[] = [];
-    const existingImages = req.body.existingImages ? JSON.parse(req.body.existingImages) : [];
+    const savedFileIds: string[] = [];
+    const existingImages: string[] = req.body.existingImages ? JSON.parse(req.body.existingImages) : [];
 
+    // Handle new uploaded files
     if (Array.isArray(req.files)) {
+      const bucket = getGridFSBucket();
       for (const file of req.files as Express.Multer.File[]) {
-        const filename = `${Date.now()}-${file.originalname}`;
-        const filepath = path.join('images', filename);
-        await fs.promises.writeFile(filepath, file.buffer);
-        savedFilePaths.push(filename);
+        const uploadStream = bucket.openUploadStream(file.originalname, {
+          contentType: file.mimetype,
+        });
+
+        uploadStream.end(file.buffer);
+
+        await new Promise<void>((resolve, reject) => {
+          uploadStream.on('finish', () => {
+            savedFileIds.push(uploadStream.id.toString());
+            resolve();
+          });
+          uploadStream.on('error', reject);
+        });
       }
     }
 
     const projectData = res.locals.projectData;
-    if (projectData) {
-      const updatedProject = {
-        title: req.body.title || projectData.title,
-        technologies: req.body.technologies || projectData.technologies,
-        description: req.body.description || projectData.description,
-        githubLink: req.body.githubLink || projectData.githubLink,
-        images: [...existingImages, ...savedFilePaths],
-        route: req.body.title.replace(/\s+/g, '-').toLowerCase(),
-      };
-
-      await ProjectCollection.updateOne({ route: req.params.title.replace(/\s+/g, '-').toLowerCase() }, { $set: updatedProject });
-
-      return res.status(StatusCodes.ACCEPTED).json({
-        message: 'Project updated successfully.',
-        project: updatedProject,
+    if (!projectData) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        message: 'Project not found',
       });
     }
+
+    const updatedProject = {
+      title: req.body.title || projectData.title,
+      technologies: req.body.technologies || projectData.technologies,
+      description: req.body.description || projectData.description,
+      githubLink: req.body.githubLink || projectData.githubLink,
+      images: [...existingImages, ...savedFileIds], // merge existing GridFS IDs with new ones
+      route: (req.body.title || projectData.title).replace(/\s+/g, '-').toLowerCase(),
+    };
+
+    await ProjectCollection.updateOne(
+      { route: req.params.title.replace(/\s+/g, '-').toLowerCase() },
+      { $set: updatedProject }
+    );
+
+    return res.status(StatusCodes.ACCEPTED).json({
+      message: 'Project updated successfully.',
+      project: updatedProject,
+    });
   } catch (error) {
     console.error(error);
     next(new Error('Something went wrong.'));
