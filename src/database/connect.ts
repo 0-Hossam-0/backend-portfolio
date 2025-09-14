@@ -9,6 +9,7 @@ let gfsBucket: mongoose.mongo.GridFSBucket | null = null;
 let isConnected = false;
 
 export async function connectDB() {
+  console.log('Connection Status:', isConnected);
   if (isConnected && gfsBucket) return;
 
   console.log('Connecting To Database...');
