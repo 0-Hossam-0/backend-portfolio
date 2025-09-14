@@ -33,7 +33,6 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 connectDB();
 
-app.listen(port, () => console.log('Server Is Running on Port', port));
 app.use(
   session({
     secret: process.env.SESSION_SECRET!,
@@ -51,6 +50,8 @@ app.use(
     },
   })
 );
+
+app.listen(port, () => console.log('Server Is Running on Port', port));
 
 app.get('/images/:id', async (req, res) => {
   try {

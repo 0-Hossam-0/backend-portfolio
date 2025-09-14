@@ -5,14 +5,18 @@ dotenv.config();
 
 const DB_CONNECTION = process.env.DB_CONNECTION;
 
-let gfsBucket: mongoose.mongo.GridFSBucket;
+let gfsBucket: mongoose.mongo.GridFSBucket | null = null;
+let isConnected = false;
 
 export async function connectDB() {
+  if (isConnected && gfsBucket) return;
+
   console.log('Connecting To Database...');
   try {
     const conn = await mongoose.connect(DB_CONNECTION!);
-    console.log('Database is connected successfully.');
 
+    isConnected = true;
+    console.log('Database is connected successfully.');
 
     gfsBucket = new mongoose.mongo.GridFSBucket(conn.connection.db!, {
       bucketName: 'uploads',
