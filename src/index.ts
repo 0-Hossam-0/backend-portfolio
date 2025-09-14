@@ -59,7 +59,7 @@ app.get('/images/:id', async (req, res) => {
     const bucket = getGridFSBucket();
     const downloadStream = bucket.openDownloadStream(fileId);
 
-    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Content-Type', 'image/png');
 
     downloadStream.pipe(res);
   } catch (err) {
