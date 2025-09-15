@@ -51,21 +51,25 @@ app.use(
   })
 );
 
-app.listen(port, () => console.log('Server Is Running on Port', port));
 
 app.get('/images/:id', async (req, res) => {
   try {
     const fileId = new mongoose.Types.ObjectId(req.params.id);
     const bucket = getGridFSBucket();
+
     const downloadStream = bucket.openDownloadStream(fileId);
 
     res.setHeader('Content-Type', 'image/png');
-
     downloadStream.pipe(res);
+
+    downloadStream.on('error', () => {
+      res.status(404).json({ message: 'Image not found' });
+    });
   } catch (err) {
-    res.status(StatusCodes.NOT_FOUND).json({ message: 'Image not found' });
+    res.status(400).json({ message: 'Invalid file ID' });
   }
 });
+
 
 app.use('/api/project', projectRoutes);
 
@@ -95,5 +99,8 @@ app.use((err: ErrorRequestHandler | any, req: Request, res: Response, next: Next
     message: err.message || 'Something went wrong.',
   });
 });
+
+
+app.listen(port, () => console.log('Server Is Running on Port', port));
 
 export default app;
