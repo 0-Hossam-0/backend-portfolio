@@ -57,32 +57,15 @@ app.get('/images/:id', async (req, res) => {
   try {
     const fileId = new mongoose.Types.ObjectId(req.params.id);
     const bucket = getGridFSBucket();
-
-    // Make sure the file exists first
-    const files = await mongoose.connection.db!
-      .collection('uploads.files') // 👈 must match bucketName
-      .find({ _id: fileId })
-      .toArray();
-
-    if (!files || files.length === 0) {
-      return res.status(404).json({ message: 'Image not found' });
-    }
-
-    res.setHeader('Content-Type', files[0].contentType || 'application/octet-stream');
-
     const downloadStream = bucket.openDownloadStream(fileId);
 
-    downloadStream.on('error', (err) => {
-      console.error('Stream error:', err);
-      res.status(500).json({ message: 'Error streaming image' });
-    });
+    res.setHeader('Content-Type', 'image/png');
 
     downloadStream.pipe(res);
   } catch (err) {
-    res.status(400).json({ message: 'Invalid image id' });
+    res.status(StatusCodes.NOT_FOUND).json({ message: 'Image not found' });
   }
 });
-
 
 app.use('/api/project', projectRoutes);
 
