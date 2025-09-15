@@ -31,7 +31,30 @@ const port = process.env.PORT || 4000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-connectDB();
+(async () => {
+  await connectDB(); // wait until DB is ready
+  console.log('DB ready, starting server...');
+
+  app.get('/images/:id', async (req, res) => {
+    try {
+      const fileId = new mongoose.Types.ObjectId(req.params.id);
+      const bucket = getGridFSBucket();
+
+      const downloadStream = bucket.openDownloadStream(fileId);
+
+      res.setHeader('Content-Type', 'image/png');
+      downloadStream.pipe(res);
+
+      downloadStream.on('error', () => {
+        res.status(404).json({ message: 'Image not found' });
+      });
+    } catch (err) {
+      res.status(400).json({ message: 'Invalid file ID' });
+    }
+  });
+
+  app.listen(3000, () => console.log('Server running'));
+})();
 
 app.use(
   session({
