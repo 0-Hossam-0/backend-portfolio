@@ -31,28 +31,30 @@ const port = process.env.PORT || 4000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
- connectDB(); // 👈 ensure connected for this request
+connectDB();
 
-app.get('/images/:id', async (req, res) => {
-  try {
-    await connectDB(); // 👈 ensure connected for this request
 
-    const fileId = new mongoose.Types.ObjectId(req.params.id);
-    const bucket = getGridFSBucket();
+  app.get('/images/:id', async (req, res) => {
+    try {
+      await connectDB(); // wait until DB is ready
+      const fileId = new mongoose.Types.ObjectId(req.params.id);
+      const bucket = getGridFSBucket();
+      console.log('bucket', bucket);
 
-    const downloadStream = bucket.openDownloadStream(fileId);
+      const downloadStream = bucket.openDownloadStream(fileId);
 
-    res.setHeader('Content-Type', 'image/png');
-    downloadStream.pipe(res);
+      res.setHeader('Content-Type', 'image/png');
+      downloadStream.pipe(res);
 
-    downloadStream.on('error', () => {
-      res.status(StatusCodes.NOT_FOUND).json({ message: 'Image not found' });
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(400).json({ message: 'Invalid file ID or DB error' });
-  }
-});
+      downloadStream.on('error', () => {
+        res.status(404).json({ message: 'Image not found' });
+      });
+    } catch (err) {
+      res.status(400).json({ message: 'Invalid file ID' });
+    }
+  });
+
+  // app.listen(process.env.PORT, () => console.log('Server running'));
 
 app.use(
   session({

@@ -5,40 +5,33 @@ dotenv.config();
 
 const DB_CONNECTION = process.env.DB_CONNECTION;
 
-let mongoosePromise: Promise<typeof mongoose> | null = null;
+let gfsBucket: mongoose.mongo.GridFSBucket | null = null;
+let isConnected = false;
 
 export async function connectDB() {
-  if ((global as any).mongooseConn) {
-    return (global as any).mongooseConn;
-  }
+  console.log('Connection Status:', isConnected);
+  console.log('gfs Bucket:', gfsBucket);
+  if (isConnected && gfsBucket) return;
 
-  if (!mongoosePromise) {
-    console.log('Connecting To Database...');
-    mongoosePromise = mongoose.connect(DB_CONNECTION!, {
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 10000, // more tolerant on cold starts
-    });
-  }
+  console.log('Connecting To Database...');
+  try {
+    const conn = await mongoose.connect(DB_CONNECTION!);
 
-  const conn = await mongoosePromise;
+    isConnected = true;
+    console.log('Database is connected successfully.');
 
-  (global as any).mongooseConn = conn;
-
-  if (!(global as any).gfsBucket) {
-    const db = conn.connection.db;
-    (global as any).gfsBucket = new mongoose.mongo.GridFSBucket(db!, {
+    gfsBucket = new mongoose.mongo.GridFSBucket(conn.connection.db!, {
       bucketName: 'uploads',
     });
-    console.log('GridFS initialized');
+    console.log('GridFS initialized with bucket name "uploads"');
+  } catch (error) {
+    console.error('Error connecting to DB:', error);
   }
-
-  return conn;
 }
 
 export function getGridFSBucket(): mongoose.mongo.GridFSBucket {
-  const bucket = (global as any).gfsBucket;
-  if (!bucket) {
+  if (!gfsBucket) {
     throw new Error('GridFSBucket is not initialized. Call connectDB() first.');
   }
-  return bucket;
+  return gfsBucket;
 }
