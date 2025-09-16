@@ -23,10 +23,19 @@ export async function connectDB() {
     console.log('Database is connected successfully.');
 
     // 3. Use the stable mongoose.connection.db object to initialize GridFS
-    gfsBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db!, {
-      bucketName: 'uploads',
-    });
-    console.log('GridFS initialized with bucket name "uploads"');
+    async () => {
+      while (true) {
+        if (!mongoose.connection.db) {
+          console.log('Waiting for mongoose.connection.db to be available...');
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          continue;
+        }
+        gfsBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db!, {
+          bucketName: 'uploads',
+        });
+        console.log('GridFS initialized with bucket name "uploads"');
+      }
+    };
   } catch (error) {
     console.error('Error connecting to DB:', error);
   }
