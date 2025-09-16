@@ -16,7 +16,7 @@ export async function connectDB() {
     console.log('Connecting To Database...');
     mongoosePromise = mongoose.connect(DB_CONNECTION!, {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 30000, // more tolerant on cold starts
+      serverSelectionTimeoutMS: 10000, // more tolerant on cold starts
     });
   }
 
