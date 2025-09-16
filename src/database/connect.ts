@@ -9,23 +9,20 @@ let gfsBucket: mongoose.mongo.GridFSBucket | null = (global as any).gfsBucket ||
 let isConnected: boolean = (global as any).isConnected || false;
 
 export async function connectDB() {
-  console.log('Connection Status:', isConnected);
-  if (isConnected && gfsBucket) return;
+  if ((global as any).mongooseConn) {
+    return (global as any).mongooseConn;
+  }
 
   console.log('Connecting To Database...');
-  try {
-    const conn = await mongoose.connect(DB_CONNECTION!);
+  const conn = await mongoose.connect(DB_CONNECTION!);
 
-    isConnected = true;
-    console.log('Database is connected successfully.');
+  (global as any).mongooseConn = conn;
+  (global as any).gfsBucket = new mongoose.mongo.GridFSBucket(conn.connection.db!, {
+    bucketName: 'uploads',
+  });
 
-    gfsBucket = new mongoose.mongo.GridFSBucket(conn.connection.db!, {
-      bucketName: 'uploads',
-    });
-    console.log('GridFS initialized with bucket name "uploads"');
-  } catch (error) {
-    console.error('Error connecting to DB:', error);
-  }
+  console.log('Database is connected successfully.');
+  return conn;
 }
 
 export function getGridFSBucket(): mongoose.mongo.GridFSBucket {
