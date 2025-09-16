@@ -26,7 +26,7 @@ export async function connectDB() {
 
   if (!(global as any).gfsBucket) {
     const db = conn.connection.db;
-    (global as any).gfsBucket = new mongoose.mongo.GridFSBucket(db, {
+    (global as any).gfsBucket = new mongoose.mongo.GridFSBucket(db!, {
       bucketName: 'uploads',
     });
     console.log('GridFS initialized');
