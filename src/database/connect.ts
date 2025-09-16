@@ -9,23 +9,35 @@ let gfsBucket: mongoose.mongo.GridFSBucket | null = null;
 let isConnected = false;
 
 export async function connectDB() {
-  console.log('Connection Status:', isConnected);
-  console.log('gfs Bucket:', gfsBucket);
   if (isConnected && gfsBucket) return;
 
   console.log('Connecting To Database...');
   try {
-    const conn = await mongoose.connect(DB_CONNECTION!);
+    const conn = await mongoose.connect(DB_CONNECTION!, {
+      bufferCommands: false,
+    });
+
+    // Explicitly wait for the "open" event
+    if (conn.connection.readyState !== 1) {
+      await new Promise<void>((resolve, reject) => {
+        conn.connection.once('open', () => resolve());
+        conn.connection.once('error', (err) => reject(err));
+      });
+    }
 
     isConnected = true;
     console.log('Database is connected successfully.');
 
-    gfsBucket = new mongoose.mongo.GridFSBucket(conn.connection.db!, {
+    const db = conn.connection.db;
+    if (!db) throw new Error('DB is still undefined after open');
+
+    gfsBucket = new mongoose.mongo.GridFSBucket(db, {
       bucketName: 'uploads',
     });
     console.log('GridFS initialized with bucket name "uploads"');
   } catch (error) {
     console.error('Error connecting to DB:', error);
+    throw error;
   }
 }
 

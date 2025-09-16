@@ -39,7 +39,7 @@ connectDB();
       await connectDB(); // wait until DB is ready
       const fileId = new mongoose.Types.ObjectId(req.params.id);
       const bucket = getGridFSBucket();
-      console.log('bucket', bucket);
+      console.log('bucket', !!bucket);
 
       const downloadStream = bucket.openDownloadStream(fileId);
 
