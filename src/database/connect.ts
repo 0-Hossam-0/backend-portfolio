@@ -5,9 +5,6 @@ dotenv.config();
 
 const DB_CONNECTION = process.env.DB_CONNECTION;
 
-let gfsBucket: mongoose.mongo.GridFSBucket | null = (global as any).gfsBucket || null;
-let isConnected: boolean = (global as any).isConnected || false;
-
 export async function connectDB() {
   if ((global as any).mongooseConn) {
     return (global as any).mongooseConn;
@@ -26,8 +23,9 @@ export async function connectDB() {
 }
 
 export function getGridFSBucket(): mongoose.mongo.GridFSBucket {
-  if (!gfsBucket) {
+  const bucket = (global as any).gfsBucket;
+  if (!bucket) {
     throw new Error('GridFSBucket is not initialized. Call connectDB() first.');
   }
-  return gfsBucket;
+  return bucket;
 }
