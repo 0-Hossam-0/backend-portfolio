@@ -6,37 +6,29 @@ dotenv.config();
 const DB_CONNECTION = process.env.DB_CONNECTION;
 
 let gfsBucket: mongoose.mongo.GridFSBucket | null = null;
-let isConnected = false;
 
 export async function connectDB() {
-  if (isConnected && gfsBucket) {
+  // 1. Use Mongoose's built-in state to check for connection
+  // readyState === 1 means connected. This is more reliable than a custom flag.
+  if (mongoose.connection.readyState === 1 && gfsBucket) {
+    console.log('Already connected to DB and GridFS is initialized.');
     return;
   }
 
   console.log('Connecting To Database...');
   try {
-    const conn = await mongoose.connect(DB_CONNECTION!, {
-      bufferCommands: false,
+    // 2. Connect to the database
+    await mongoose.connect(DB_CONNECTION!);
+
+    console.log('Database is connected successfully.');
+
+    // 3. Use the stable mongoose.connection.db object to initialize GridFS
+    gfsBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db!, {
+      bucketName: 'uploads',
     });
-
-    // ✅ wait until fully ready, with timeout (10s)
-    await Promise.race([
-      conn.connection.asPromise(), // resolves on "open"
-      new Promise((_, reject) => setTimeout(() => reject(new Error('MongoDB connection timeout')), 10000)),
-    ]);
-
-    const db = conn.connection.db;
-    if (!db) {
-      throw new Error('Database is not ready');
-    }
-
-    gfsBucket = new mongoose.mongo.GridFSBucket(db, { bucketName: 'uploads' });
-    isConnected = true;
-
-    console.log('Database connected + GridFS ready.');
+    console.log('GridFS initialized with bucket name "uploads"');
   } catch (error) {
     console.error('Error connecting to DB:', error);
-    throw error;
   }
 }
 
