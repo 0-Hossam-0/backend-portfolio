@@ -14,13 +14,20 @@ export async function connectDB() {
   const conn = await mongoose.connect(DB_CONNECTION!);
 
   (global as any).mongooseConn = conn;
-  (global as any).gfsBucket = new mongoose.mongo.GridFSBucket(conn.connection.db!, {
+
+  const db = mongoose.connection.db; // <-- safer than conn.connection.db
+  if (!db) {
+    throw new Error('Database connection is not ready yet');
+  }
+
+  (global as any).gfsBucket = new mongoose.mongo.GridFSBucket(db, {
     bucketName: 'uploads',
   });
 
   console.log('Database is connected successfully.');
   return conn;
 }
+
 
 export function getGridFSBucket(): mongoose.mongo.GridFSBucket {
   const bucket = (global as any).gfsBucket;
