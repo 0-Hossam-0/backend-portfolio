@@ -9,7 +9,9 @@ let gfsBucket: mongoose.mongo.GridFSBucket | null = null;
 let isConnected = false;
 
 export async function connectDB() {
-  if (isConnected && gfsBucket) return;
+  if (isConnected && gfsBucket) {
+    return;
+  }
 
   console.log('Connecting To Database...');
   try {
@@ -17,24 +19,21 @@ export async function connectDB() {
       bufferCommands: false,
     });
 
-    // Explicitly wait for the "open" event
-    if (conn.connection.readyState !== 1) {
-      await new Promise<void>((resolve, reject) => {
-        conn.connection.once('open', () => resolve());
-        conn.connection.once('error', (err) => reject(err));
-      });
-    }
-
-    isConnected = true;
-    console.log('Database is connected successfully.');
+    // ✅ wait until fully ready, with timeout (10s)
+    await Promise.race([
+      conn.connection.asPromise(), // resolves on "open"
+      new Promise((_, reject) => setTimeout(() => reject(new Error('MongoDB connection timeout')), 10000)),
+    ]);
 
     const db = conn.connection.db;
-    if (!db) throw new Error('DB is still undefined after open');
+    if (!db) {
+      throw new Error('Database is not ready');
+    }
 
-    gfsBucket = new mongoose.mongo.GridFSBucket(db, {
-      bucketName: 'uploads',
-    });
-    console.log('GridFS initialized with bucket name "uploads"');
+    gfsBucket = new mongoose.mongo.GridFSBucket(db, { bucketName: 'uploads' });
+    isConnected = true;
+
+    console.log('Database connected + GridFS ready.');
   } catch (error) {
     console.error('Error connecting to DB:', error);
     throw error;
