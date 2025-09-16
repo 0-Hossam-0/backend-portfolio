@@ -31,6 +31,8 @@ const port = process.env.PORT || 4000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+ connectDB(); // 👈 ensure connected for this request
+
 app.get('/images/:id', async (req, res) => {
   try {
     await connectDB(); // 👈 ensure connected for this request
