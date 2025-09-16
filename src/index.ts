@@ -46,7 +46,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
       downloadStream.pipe(res);
 
       downloadStream.on('error', () => {
-        res.status(404).json({ message: 'Image not found' });
+        res.status(StatusCodes.NOT_FOUND).json({ message: 'Image not found' });
       });
     } catch (err) {
       res.status(400).json({ message: 'Invalid file ID' });

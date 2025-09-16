@@ -5,8 +5,8 @@ dotenv.config();
 
 const DB_CONNECTION = process.env.DB_CONNECTION;
 
-let gfsBucket: mongoose.mongo.GridFSBucket | null = null;
-let isConnected = false;
+let gfsBucket: mongoose.mongo.GridFSBucket | null = (global as any).gfsBucket || null;
+let isConnected: boolean = (global as any).isConnected || false;
 
 export async function connectDB() {
   console.log('Connection Status:', isConnected);
