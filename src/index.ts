@@ -31,6 +31,7 @@ const port = process.env.PORT || 4000;
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+
 connectDB();
 
 
@@ -39,7 +40,6 @@ connectDB();
       await connectDB(); // wait until DB is ready
       const fileId = new mongoose.Types.ObjectId(req.params.id);
       const bucket = getGridFSBucket();
-      console.log('bucket', !!bucket);
 
       const downloadStream = bucket.openDownloadStream(fileId);
 
@@ -66,8 +66,8 @@ app.use(
       dbName: 'sessions',
     }),
     cookie: {
-      secure: true,
-      sameSite: 'none',
+      secure: false,
+      sameSite: 'lax',
       httpOnly: true,
       maxAge: 1000 * 60 * 60,
     },

@@ -18,9 +18,7 @@ export async function connectDB() {
     await mongoose.connect(DB_CONNECTION!);
     console.log('Database is connected successfully.');
 
-    // IIFE — invoked immediately
     await (async () => {
-      // poll a bounded number of times (don't loop forever)
       const maxAttempts = 50;
       let attempt = 0;
       while (!mongoose.connection.db && attempt++ < maxAttempts) {
