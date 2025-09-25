@@ -47,14 +47,13 @@ connectDB();
       downloadStream.pipe(res);
 
       downloadStream.on('error', () => {
-        res.status(404).json({ message: 'Image not found' });
+        res.status(StatusCodes.NOT_FOUND).json({ message: 'Image not found' });
       });
     } catch (err) {
-      res.status(400).json({ message: 'Invalid file ID' });
+      res.status(StatusCodes.BAD_REQUEST).json({ message: 'Invalid file ID' });
     }
   });
 
-  // app.listen(process.env.PORT, () => console.log('Server running'));
 
 app.use(
   session({
@@ -66,8 +65,8 @@ app.use(
       dbName: 'sessions',
     }),
     cookie: {
-      secure: false,
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       httpOnly: true,
       maxAge: 1000 * 60 * 60,
     },
